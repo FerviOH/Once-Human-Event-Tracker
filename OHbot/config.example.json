@@ -1,0 +1,28 @@
+{
+  "BOT_TOKEN": "YOUR_DISCORD_BOT_TOKEN",
+  "CLIENT_ID": "YOUR_APPLICATION_CLIENT_ID",
+  "GUILD_ID": "",
+
+  "CHANNEL_ID": "",
+  "MESSAGE_ID": "",
+
+  "TIMEZONE": "America/Chicago",
+  "EMBED_TITLE": "Once Human Event Tracker",
+  "EMBED_COLOR": "#FFFF00",
+  "THUMBNAIL_URL": "",
+
+  "LOOT_RESET_ANCHOR": { "hour": 0, "minute": 0 },
+  "LOOT_RESET_INTERVAL_HOURS": 4,
+
+  "DAILY_RESET_TIME": { "hour": 0, "minute": 0 },
+
+  "COMBINED_RESET_DAY": 1,
+  "COMBINED_RESET_HOUR": 0,
+  "COMBINED_RESET_MINUTE": 0,
+
+  "PHASE_CYCLE_START_ISO": null,
+  "PHASE_DURATIONS_DAYS": [],
+  "PHASE_NAMES": [],
+
+  "HAL_LOCATION": "Unknown"
+}
