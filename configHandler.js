@@ -1,5 +1,5 @@
 // configHandler.js
-// Reads environment variables or config.json, and handles state persistence on ephemeral hosting.
+// Reads a single CONFIG_JSON environment variable or a local config.json file.
 
 const fs = require('fs');
 const path = require('path');
@@ -7,44 +7,39 @@ const path = require('path');
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
 function loadConfig() {
-  let baseConfig = {};
-
-  // 1. Load baseline / local configurations if the file exists
-  if (fs.existsSync(CONFIG_PATH)) {
+  // 1. Check if the single CONFIG_JSON variable exists on Railway
+  if (process.env.CONFIG_JSON) {
     try {
-      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
-      baseConfig = JSON.parse(raw);
+      return JSON.parse(process.env.CONFIG_JSON);
     } catch (err) {
-      console.error('Failed to parse config.json, using defaults:', err.message);
+      console.error('Failed to parse CONFIG_JSON environment variable string:', err.message);
     }
   }
 
-  // 2. Overlay environment variables (Railway takes priority over hardcoded files)
-  return {
-    ...baseConfig,
-    BOT_TOKEN: process.env.BOT_TOKEN || baseConfig.BOT_TOKEN,
-    CLIENT_ID: process.env.CLIENT_ID || baseConfig.CLIENT_ID,
-    GUILD_ID: process.env.GUILD_ID || baseConfig.GUILD_ID,
-    CHANNEL_ID: process.env.CHANNEL_ID || baseConfig.CHANNEL_ID,
-    MESSAGE_ID: process.env.MESSAGE_ID || baseConfig.MESSAGE_ID,
-    TIMEZONE: process.env.TIMEZONE || baseConfig.TIMEZONE || 'UTC',
-    HAL_LOCATION: process.env.HAL_LOCATION || baseConfig.HAL_LOCATION,
-    NEXT_PHASE_ISO: process.env.NEXT_PHASE_ISO || baseConfig.NEXT_PHASE_ISO,
-  };
+  // 2. Local Development Fallback: Load from the local physical file
+  if (fs.existsSync(CONFIG_PATH)) {
+    try {
+      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('Failed to parse local config.json file:', err.message);
+    }
+  }
+
+  // 3. Absolute fallback if everything is missing
+  return {};
 }
 
 function saveConfig(config) {
-  // On Railway, local disk updates disappear on container restart.
-  // We log the change so you can update your Railway Variables dashboard manually.
-  if (process.env.BOT_TOKEN) {
-    console.log('\n⚠️ STATE UPDATE DETECTED! Add these to your Railway Dashboard Variables if you restart:');
-    console.log(`MESSAGE_ID: "${config.MESSAGE_ID || ''}"`);
-    console.log(`HAL_LOCATION: "${config.HAL_LOCATION || ''}"`);
-    console.log(`NEXT_PHASE_ISO: "${config.NEXT_PHASE_ISO || ''}"`);
+  // On Railway, printing out the new JSON configuration block allows easy copying 
+  // and pasting straight back into your single Railway variable.
+  if (process.env.CONFIG_JSON) {
+    console.log('\n⚠️ STATE UPDATE DETECTED! Copy the entire JSON block below and update your CONFIG_JSON variable in Railway:');
+    console.log(JSON.stringify(config, null, 2));
     console.log('----------------------------------------------------------------------\n');
   }
 
-  // Still attempt to write locally to keep the in-memory process consistent until next restart
+  // Still write locally to keep the active bot instance accurate until the next reboot
   try {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
   } catch (err) {
