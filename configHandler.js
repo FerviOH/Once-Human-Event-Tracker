@@ -1,36 +1,49 @@
 // configHandler.js
-// Reads a single CONFIG_JSON environment variable or a local config.json file.
+// Reads a single CONFIG_JSON environment variable or a local config.json file, with runtime caching.
 
 const fs = require('fs');
 const path = require('path');
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 
+// This variable will hold our updates in memory while the bot runs
+let cachedConfig = null;
+
 function loadConfig() {
+  // If we already have a runtime configuration in memory, use it immediately
+  if (cachedConfig) {
+    return cachedConfig;
+  }
+
+  let baseConfig = {};
+
   // 1. Check if the single CONFIG_JSON variable exists on Railway
   if (process.env.CONFIG_JSON) {
     try {
-      return JSON.parse(process.env.CONFIG_JSON);
+      baseConfig = JSON.parse(process.env.CONFIG_JSON);
     } catch (err) {
       console.error('Failed to parse CONFIG_JSON environment variable string:', err.message);
     }
   }
-
   // 2. Local Development Fallback: Load from the local physical file
-  if (fs.existsSync(CONFIG_PATH)) {
+  else if (fs.existsSync(CONFIG_PATH)) {
     try {
       const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
-      return JSON.parse(raw);
+      baseConfig = JSON.parse(raw);
     } catch (err) {
       console.error('Failed to parse local config.json file:', err.message);
     }
   }
 
-  // 3. Absolute fallback if everything is missing
-  return {};
+  // Save to cache so future reads get these values or subsequent runtime updates
+  cachedConfig = baseConfig;
+  return cachedConfig;
 }
 
 function saveConfig(config) {
+  // CRUCIAL: Save the update to memory so loadConfig() immediately reflects it
+  cachedConfig = config;
+
   // On Railway, printing out the new JSON configuration block allows easy copying 
   // and pasting straight back into your single Railway variable.
   if (process.env.CONFIG_JSON) {
