@@ -1,7 +1,8 @@
 // bot.js
 // Entry point. Run with: node bot.js
 
-const { Client, GatewayIntentBits, REST, Routes, ActivityType } = require('discord.js');
+// 1. Added MessageFlags to the discord.js imports line
+const { Client, GatewayIntentBits, REST, Routes, ActivityType, MessageFlags } = require('discord.js');
 const { CronJob } = require('cron');
 const { loadConfig } = require('./configHandler');
 const { buildEmbed } = require('./resetTimers');
@@ -19,9 +20,6 @@ const client = new Client({
 });
 
 // --- Slash command registration -------------------------------------------
-// With GUILD_ID set, commands register instantly to that one server
-// (best while developing). Without it, they register globally, which can
-// take up to an hour to propagate everywhere.
 async function registerCommands() {
   const rest = new REST({ version: '10' }).setToken(config.BOT_TOKEN);
   const body = commandDefinitions.map(cmd => cmd.toJSON());
@@ -33,14 +31,14 @@ async function registerCommands() {
     await rest.put(Routes.applicationCommands(config.CLIENT_ID), { body });
     console.log('Registered slash commands globally (may take up to 1 hour to appear).');
   } else {
-    console.warn('CLIENT_ID not set in config.json — skipping slash command registration.');
+    console.warn('CLIENT_ID not set — skipping slash command registration.');
   }
 }
 
 // --- Keeping the tracker message up to date --------------------------------
 async function updateTrackerMessage() {
   const freshConfig = loadConfig();
-  if (!freshConfig.CHANNEL_ID || !freshConfig.MESSAGE_ID) return; // nothing posted yet
+  if (!freshConfig.CHANNEL_ID || !freshConfig.MESSAGE_ID) return;
 
   try {
     const channel = await client.channels.fetch(freshConfig.CHANNEL_ID);
@@ -63,7 +61,7 @@ client.once('ready', async () => {
   new CronJob('0 */10 * * * *', setBotActivity, null, true, config.TIMEZONE);
   new CronJob('0 * * * * *', updateTrackerMessage, null, true, config.TIMEZONE);
 
-  updateTrackerMessage(); // run once immediately so it's not stale on startup
+  updateTrackerMessage();
 });
 
 client.on('interactionCreate', async (interaction) => {
@@ -72,7 +70,11 @@ client.on('interactionCreate', async (interaction) => {
   } catch (err) {
     console.error('Error handling interaction:', err);
     if (interaction.isRepliable()) {
-      await interaction.reply({ content: 'Something went wrong running that command.', ephemeral: true });
+      // 2. Swapped ephemeral: true with flags: [MessageFlags.Ephemeral]
+      await interaction.reply({ 
+        content: 'Something went wrong running that command.', 
+        flags: [MessageFlags.Ephemeral] 
+      });
     }
   }
 });

@@ -2,7 +2,8 @@
 // All slash commands require "Manage Server" permission so regular
 // members can't repost the tracker or mess with reset times.
 
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+// 1. Added MessageFlags to the discord.js imports line
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const moment = require('moment-timezone');
 const { updateConfig } = require('./configHandler');
 const { buildEmbed } = require('./resetTimers');
@@ -57,13 +58,21 @@ async function handleInteraction(interaction, config) {
 
     const parsedStart = moment.tz(`${startDate} ${startTime}`, 'YYYY-MM-DD HH:mm', config.TIMEZONE);
     if (!parsedStart.isValid()) {
-      await interaction.reply({ content: 'Could not parse start_date/start_time. Use YYYY-MM-DD and HH:MM (24h).', ephemeral: true });
+      // 2. Swapped to MessageFlags array syntax here
+      await interaction.reply({ 
+        content: 'Could not parse start_date/start_time. Use YYYY-MM-DD and HH:MM (24h).', 
+        flags: [MessageFlags.Ephemeral] 
+      });
       return;
     }
 
     const durations = durationsRaw.split(',').map(s => Number(s.trim())).filter(n => !Number.isNaN(n) && n > 0);
     if (durations.length < 4 || durations.length > 7) {
-      await interaction.reply({ content: 'durations must have between 4 and 7 comma-separated positive numbers (days).', ephemeral: true });
+      // 3. Swapped here
+      await interaction.reply({ 
+        content: 'durations must have between 4 and 7 comma-separated positive numbers (days).', 
+        flags: [MessageFlags.Ephemeral] 
+      });
       return;
     }
 
@@ -75,9 +84,10 @@ async function handleInteraction(interaction, config) {
       PHASE_NAMES: names,
     });
 
+    // 4. Swapped here
     await interaction.reply({
       content: `New phase cycle set: ${durations.length} phases starting ${`<t:${parsedStart.unix()}:F>`}.`,
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
     return;
   }
@@ -87,14 +97,16 @@ async function handleInteraction(interaction, config) {
     const embed = buildEmbed(freshConfig);
     const message = await interaction.channel.send({ embeds: [embed] });
     updateConfig({ CHANNEL_ID: interaction.channel.id, MESSAGE_ID: message.id });
-    await interaction.reply({ content: 'Timer post created.', ephemeral: true });
+    // 5. Swapped here
+    await interaction.reply({ content: 'Timer post created.', flags: [MessageFlags.Ephemeral] });
     return;
   }
 
   if (commandName === 'ohsethallocation') {
     const location = interaction.options.getString('location');
     updateConfig({ HAL_LOCATION: location });
-    await interaction.reply({ content: `Hal's location updated to: ${location}`, ephemeral: true });
+    // 6. Swapped here
+    await interaction.reply({ content: `Hal's location updated to: ${location}`, flags: [MessageFlags.Ephemeral] });
     return;
   }
 
@@ -102,7 +114,11 @@ async function handleInteraction(interaction, config) {
     const hour = interaction.options.getInteger('hour');
     const minute = interaction.options.getInteger('minute');
     updateConfig({ LOOT_RESET_ANCHOR: { hour, minute } });
-    await interaction.reply({ content: `Loot reset cycle now anchored at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} (repeats every 4h from there).`, ephemeral: true });
+    // 7. Swapped here
+    await interaction.reply({ 
+      content: `Loot reset cycle now anchored at ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} (repeats every 4h from there).`, 
+      flags: [MessageFlags.Ephemeral] 
+    });
     return;
   }
 
@@ -110,7 +126,11 @@ async function handleInteraction(interaction, config) {
     const hour = interaction.options.getInteger('hour');
     const minute = interaction.options.getInteger('minute');
     updateConfig({ DAILY_RESET_TIME: { hour, minute } });
-    await interaction.reply({ content: `Daily reset now set to ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}.`, ephemeral: true });
+    // 8. Swapped here
+    await interaction.reply({ 
+      content: `Daily reset now set to ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}.`, 
+      flags: [MessageFlags.Ephemeral] 
+    });
     return;
   }
 }
